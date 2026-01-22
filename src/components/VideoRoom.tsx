@@ -21,8 +21,19 @@ import ToastContainer from './ToastContainer'
 import VideoEffectsPanel from './VideoEffectsPanel'
 import Tooltip from './Tooltip'
 import KeyboardShortcuts from './KeyboardShortcuts'
+import PostCallForm from './PostCallForm'
+import { useLanguage } from '@/contexts/LanguageContext'
 
-export default function VideoRoom() {
+interface VideoRoomProps {
+  userData?: {
+    name: string
+    email: string
+    ageGroup: string
+    goal: string
+  }
+}
+
+export default function VideoRoom({ userData }: VideoRoomProps = {}) {
   const {
     stream,
     screenStream,
@@ -49,6 +60,7 @@ export default function VideoRoom() {
   const { toasts, showToast, removeToast } = useToast()
   const { isFullscreen, toggleFullscreen } = useFullscreen()
   const { effects, setBackground, setFilter } = useVideoEffects()
+  const { t } = useLanguage()
   const [isJoined, setIsJoined] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(true)
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false)
@@ -56,6 +68,15 @@ export default function VideoRoom() {
   const [isEffectsOpen, setIsEffectsOpen] = useState(false)
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showPostCallForm, setShowPostCallForm] = useState(false)
+
+  // Initialize user name from userData if available
+  useEffect(() => {
+    if (userData?.name && user && user.name !== userData.name) {
+      updateUserName(userData.name)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userData?.name, user?.name])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -146,7 +167,7 @@ export default function VideoRoom() {
     try {
       await startStream(selectedCameraId || undefined, selectedMicrophoneId || undefined)
       setIsJoined(true)
-      showToast(`Joined room ${roomId}`, 'success')
+      showToast(t('videoroom.joined'), 'success')
     } catch (err) {
       showToast('Failed to join room', 'error')
     } finally {
@@ -157,11 +178,24 @@ export default function VideoRoom() {
   const handleLeave = () => {
     stopStream()
     setIsJoined(false)
-    showToast('Left the room', 'info')
+    showToast(t('videoroom.left'), 'info')
+    // Show post-call form if userData is available (from consultatie flow)
+    if (userData) {
+      setShowPostCallForm(true)
+    }
+  }
+
+  const handlePostCallComplete = () => {
+    setShowPostCallForm(false)
   }
 
   const handleCopyLink = () => {
     showToast('Share link copied!', 'success')
+  }
+
+  // Show post-call form if call ended
+  if (showPostCallForm) {
+    return <PostCallForm onComplete={handlePostCallComplete} />
   }
 
   return (
@@ -178,7 +212,17 @@ export default function VideoRoom() {
       {!isJoined ? (
         <div className="flex items-center justify-center min-h-screen p-4 animate-fade-in">
           <div className="text-center max-w-md w-full">
-            <h1 className={`text-3xl sm:text-4xl font-bold mb-8 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Video Call Room</h1>
+            <div className="mb-6">
+              <div className="text-4xl font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent mb-2">
+                {t('videoroom.brand')}
+              </div>
+              <h1 className={`text-2xl sm:text-3xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                {t('videoroom.title')}
+              </h1>
+              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                {t('videoroom.subtitle')}
+              </p>
+            </div>
             {roomId && (
               <div className="mb-6">
                 <ShareLink shareLink={shareLink} roomId={roomId} />
@@ -211,10 +255,15 @@ export default function VideoRoom() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  <span>Joining...</span>
+                  <span>{t('videoroom.joining')}</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <span>{t('videoroom.join')}</span>
                 </>
-              ) : (
-                'Join Room'
               )}
             </button>
             {error && (
@@ -228,7 +277,7 @@ export default function VideoRoom() {
           <div className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-200 border-gray-300'} border-b px-2 sm:px-4 py-2 ${(isChatOpen || isEffectsOpen) ? 'sm:mr-80' : ''}`}>
             <div className="max-w-4xl mx-auto flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0 flex-1">
-                <span className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} hidden sm:inline`}>Room:</span>
+                <span className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} hidden sm:inline`}>{t('videoroom.room')}</span>
                 <span className={`text-xs sm:text-sm font-mono ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'} truncate`}>{roomId}</span>
                 {user && (
                   <>
@@ -662,25 +711,25 @@ export default function VideoRoom() {
                 </button>
               </Tooltip>
 
-              <Tooltip content="Leave room (Esc)">
+              <Tooltip content={t('videoroom.leaveTooltip')}>
                 <button
                   onClick={handleLeave}
                   className="bg-red-600 hover:bg-red-700 px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 rounded-lg transition-colors flex items-center gap-1 sm:gap-2 font-semibold text-xs sm:text-sm md:text-base"
                 >
-                <svg
-                  className="w-4 h-4 sm:w-4 sm:h-4 md:w-5 md:h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
-                <span className="hidden sm:inline">Leave room</span>
+                  <svg
+                    className="w-4 h-4 sm:w-4 sm:h-4 md:w-5 md:h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">{t('videoroom.leave')}</span>
                 </button>
               </Tooltip>
             </div>

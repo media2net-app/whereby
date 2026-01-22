@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { LanguageProvider } from '@/contexts/LanguageContext'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export const metadata: Metadata = {
-  title: 'Video Call App',
-  description: 'Join video calls instantly',
+  title: 'RoProfit - Transformă-ți timpul în venit pasiv',
+  description: 'Platformă educațională inovatoare pentru tineri și profesioniști ambițioși. Consultații video gratuite, mentorat personalizat și sistem automatizat de gestionare financiară.',
 }
 
 export default function RootLayout({
@@ -12,8 +14,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="ro">
+      <body>
+        <LanguageProvider>
+          <LanguageSwitcher />
+          {children}
+        </LanguageProvider>
+      </body>
     </html>
   )
 }

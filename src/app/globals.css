@@ -64,6 +64,14 @@ body {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
 /* Smooth transitions */
 * {
   transition-property: background-color, border-color, color, fill, stroke;
