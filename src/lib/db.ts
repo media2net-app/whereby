@@ -1,11 +1,13 @@
-// Database client - using a simple in-memory store for now
-// In production, replace with Supabase, PostgreSQL, or your preferred database
+// Database client using Prisma
+import { prisma } from './prisma'
+import { Prisma } from '@prisma/client'
 
+// Type helpers
 export interface User {
   id: string
   email: string
   name: string
-  passwordHash?: string // Internal only, not returned in API
+  passwordHash?: string
   role: 'user' | 'admin' | 'partner'
   isActive: boolean
   createdAt: Date
@@ -50,154 +52,435 @@ export interface Payment {
   completedAt?: Date
 }
 
-// In-memory storage (replace with real database in production)
-const storage = {
-  users: new Map<string, User>(),
-  rooms: new Map<string, Room>(),
-  courses: new Map<string, Course>(),
-  payments: new Map<string, Payment>(),
+// Helper to convert Decimal to number
+const decimalToNumber = (value: Prisma.Decimal | null | undefined): number => {
+  return value ? parseFloat(value.toString()) : 0
 }
 
-// Helper functions
+// Database functions using Prisma
 export const db = {
   // Users
   createUser: async (userData: Omit<User, 'id' | 'createdAt'> & { passwordHash: string }): Promise<User> => {
-    const user: User = {
-      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      ...userData,
-      createdAt: new Date(),
+    const user = await prisma.user.create({
+      data: {
+        email: userData.email,
+        passwordHash: userData.passwordHash,
+        name: userData.name,
+        role: userData.role,
+        isActive: userData.isActive,
+      },
+    })
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role as 'user' | 'admin' | 'partner',
+      isActive: user.isActive,
+      createdAt: user.createdAt,
     }
-    storage.users.set(user.id, user)
-    return user
   },
 
   getUser: async (id: string): Promise<User | null> => {
-    return storage.users.get(id) || null
+    const user = await prisma.user.findUnique({
+      where: { id },
+    })
+    if (!user) return null
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role as 'user' | 'admin' | 'partner',
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+    }
   },
 
   getUserByEmail: async (email: string): Promise<User | null> => {
-    const users = Array.from(storage.users.values())
-    for (const user of users) {
-      if (user.email === email) {
-        // Don't return passwordHash
-        const { passwordHash, ...userWithoutPassword } = user
-        return userWithoutPassword as User
-      }
+    const user = await prisma.user.findUnique({
+      where: { email },
+    })
+    if (!user) return null
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role as 'user' | 'admin' | 'partner',
+      isActive: user.isActive,
+      createdAt: user.createdAt,
     }
-    return null
   },
 
   getUserWithPassword: async (email: string): Promise<User | null> => {
-    const users = Array.from(storage.users.values())
-    for (const user of users) {
-      if (user.email === email) return user
+    const user = await prisma.user.findUnique({
+      where: { email },
+    })
+    if (!user) return null
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      passwordHash: user.passwordHash,
+      role: user.role as 'user' | 'admin' | 'partner',
+      isActive: user.isActive,
+      createdAt: user.createdAt,
     }
-    return null
   },
 
   getAllUsers: async (): Promise<User[]> => {
-    return Array.from(storage.users.values())
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+    })
+    return users.map(user => ({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role as 'user' | 'admin' | 'partner',
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+    }))
   },
 
   updateUser: async (id: string, updates: Partial<User>): Promise<User | null> => {
-    const user = storage.users.get(id)
-    if (!user) return null
-    const updated = { ...user, ...updates }
-    storage.users.set(id, updated)
-    return updated
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        ...(updates.email && { email: updates.email }),
+        ...(updates.name && { name: updates.name }),
+        ...(updates.role && { role: updates.role }),
+        ...(updates.isActive !== undefined && { isActive: updates.isActive }),
+      },
+    })
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role as 'user' | 'admin' | 'partner',
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+    }
   },
 
   // Rooms
   createRoom: async (roomData: Omit<Room, 'id' | 'createdAt'>): Promise<Room> => {
-    const room: Room = {
-      id: `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      ...roomData,
-      createdAt: new Date(),
+    const room = await prisma.room.create({
+      data: {
+        userId: roomData.userId,
+        name: roomData.name,
+        slug: roomData.slug,
+        roomType: roomData.roomType,
+        description: roomData.description,
+        maxParticipants: roomData.maxParticipants,
+        isActive: roomData.isActive,
+      },
+    })
+    return {
+      id: room.id,
+      userId: room.userId,
+      name: room.name,
+      slug: room.slug,
+      roomType: room.roomType,
+      description: room.description || undefined,
+      maxParticipants: room.maxParticipants,
+      isActive: room.isActive,
+      createdAt: room.createdAt,
     }
-    storage.rooms.set(room.id, room)
-    return room
   },
 
   getRoom: async (id: string): Promise<Room | null> => {
-    return storage.rooms.get(id) || null
+    const room = await prisma.room.findUnique({
+      where: { id },
+    })
+    if (!room) return null
+    return {
+      id: room.id,
+      userId: room.userId,
+      name: room.name,
+      slug: room.slug,
+      roomType: room.roomType,
+      description: room.description || undefined,
+      maxParticipants: room.maxParticipants,
+      isActive: room.isActive,
+      createdAt: room.createdAt,
+    }
   },
 
   getRoomBySlug: async (slug: string): Promise<Room | null> => {
-    const rooms = Array.from(storage.rooms.values())
-    for (const room of rooms) {
-      if (room.slug === slug) return room
+    const room = await prisma.room.findUnique({
+      where: { slug },
+    })
+    if (!room) return null
+    return {
+      id: room.id,
+      userId: room.userId,
+      name: room.name,
+      slug: room.slug,
+      roomType: room.roomType,
+      description: room.description || undefined,
+      maxParticipants: room.maxParticipants,
+      isActive: room.isActive,
+      createdAt: room.createdAt,
     }
-    return null
   },
 
   getRoomsByUserId: async (userId: string): Promise<Room[]> => {
-    return Array.from(storage.rooms.values()).filter(r => r.userId === userId)
+    const rooms = await prisma.room.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    })
+    return rooms.map(room => ({
+      id: room.id,
+      userId: room.userId,
+      name: room.name,
+      slug: room.slug,
+      roomType: room.roomType,
+      description: room.description || undefined,
+      maxParticipants: room.maxParticipants,
+      isActive: room.isActive,
+      createdAt: room.createdAt,
+    }))
   },
 
   getAllRooms: async (): Promise<Room[]> => {
-    return Array.from(storage.rooms.values())
+    const rooms = await prisma.room.findMany({
+      orderBy: { createdAt: 'desc' },
+    })
+    return rooms.map(room => ({
+      id: room.id,
+      userId: room.userId,
+      name: room.name,
+      slug: room.slug,
+      roomType: room.roomType,
+      description: room.description || undefined,
+      maxParticipants: room.maxParticipants,
+      isActive: room.isActive,
+      createdAt: room.createdAt,
+    }))
   },
 
   // Courses
   createCourse: async (courseData: Omit<Course, 'id' | 'createdAt' | 'downloadCount'>): Promise<Course> => {
-    const course: Course = {
-      id: `course_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      downloadCount: 0,
-      ...courseData,
-      createdAt: new Date(),
+    const course = await prisma.course.create({
+      data: {
+        userId: courseData.userId,
+        title: courseData.title,
+        description: courseData.description,
+        price: courseData.price,
+        fileUrl: courseData.fileUrl,
+        fileName: courseData.fileName,
+        fileSize: courseData.fileSize ? BigInt(courseData.fileSize) : null,
+        category: courseData.category,
+        isPublished: courseData.isPublished,
+      },
+    })
+    return {
+      id: course.id,
+      userId: course.userId,
+      title: course.title,
+      description: course.description || undefined,
+      price: decimalToNumber(course.price),
+      fileUrl: course.fileUrl || undefined,
+      fileName: course.fileName || undefined,
+      fileSize: course.fileSize ? Number(course.fileSize) : undefined,
+      category: course.category || undefined,
+      isPublished: course.isPublished,
+      downloadCount: course.downloadCount,
+      createdAt: course.createdAt,
     }
-    storage.courses.set(course.id, course)
-    return course
   },
 
   getCourse: async (id: string): Promise<Course | null> => {
-    return storage.courses.get(id) || null
+    const course = await prisma.course.findUnique({
+      where: { id },
+    })
+    if (!course) return null
+    return {
+      id: course.id,
+      userId: course.userId,
+      title: course.title,
+      description: course.description || undefined,
+      price: decimalToNumber(course.price),
+      fileUrl: course.fileUrl || undefined,
+      fileName: course.fileName || undefined,
+      fileSize: course.fileSize ? Number(course.fileSize) : undefined,
+      category: course.category || undefined,
+      isPublished: course.isPublished,
+      downloadCount: course.downloadCount,
+      createdAt: course.createdAt,
+    }
   },
 
   getPublishedCourses: async (): Promise<Course[]> => {
-    return Array.from(storage.courses.values()).filter(c => c.isPublished)
+    const courses = await prisma.course.findMany({
+      where: { isPublished: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    return courses.map(course => ({
+      id: course.id,
+      userId: course.userId,
+      title: course.title,
+      description: course.description || undefined,
+      price: decimalToNumber(course.price),
+      fileUrl: course.fileUrl || undefined,
+      fileName: course.fileName || undefined,
+      fileSize: course.fileSize ? Number(course.fileSize) : undefined,
+      category: course.category || undefined,
+      isPublished: course.isPublished,
+      downloadCount: course.downloadCount,
+      createdAt: course.createdAt,
+    }))
   },
 
   getAllCourses: async (): Promise<Course[]> => {
-    return Array.from(storage.courses.values())
+    const courses = await prisma.course.findMany({
+      orderBy: { createdAt: 'desc' },
+    })
+    return courses.map(course => ({
+      id: course.id,
+      userId: course.userId,
+      title: course.title,
+      description: course.description || undefined,
+      price: decimalToNumber(course.price),
+      fileUrl: course.fileUrl || undefined,
+      fileName: course.fileName || undefined,
+      fileSize: course.fileSize ? Number(course.fileSize) : undefined,
+      category: course.category || undefined,
+      isPublished: course.isPublished,
+      downloadCount: course.downloadCount,
+      createdAt: course.createdAt,
+    }))
   },
 
   updateCourse: async (id: string, updates: Partial<Course>): Promise<Course | null> => {
-    const course = storage.courses.get(id)
-    if (!course) return null
-    const updated = { ...course, ...updates }
-    storage.courses.set(id, updated)
-    return updated
+    const course = await prisma.course.update({
+      where: { id },
+      data: {
+        ...(updates.title && { title: updates.title }),
+        ...(updates.description !== undefined && { description: updates.description }),
+        ...(updates.price !== undefined && { price: updates.price }),
+        ...(updates.fileUrl !== undefined && { fileUrl: updates.fileUrl }),
+        ...(updates.fileName !== undefined && { fileName: updates.fileName }),
+        ...(updates.fileSize !== undefined && { fileSize: updates.fileSize ? BigInt(updates.fileSize) : null }),
+        ...(updates.category !== undefined && { category: updates.category }),
+        ...(updates.isPublished !== undefined && { isPublished: updates.isPublished }),
+      },
+    })
+    return {
+      id: course.id,
+      userId: course.userId,
+      title: course.title,
+      description: course.description || undefined,
+      price: decimalToNumber(course.price),
+      fileUrl: course.fileUrl || undefined,
+      fileName: course.fileName || undefined,
+      fileSize: course.fileSize ? Number(course.fileSize) : undefined,
+      category: course.category || undefined,
+      isPublished: course.isPublished,
+      downloadCount: course.downloadCount,
+      createdAt: course.createdAt,
+    }
   },
 
   // Payments
   createPayment: async (paymentData: Omit<Payment, 'id' | 'createdAt'>): Promise<Payment> => {
-    const payment: Payment = {
-      id: `payment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      ...paymentData,
-      createdAt: new Date(),
+    const payment = await prisma.payment.create({
+      data: {
+        userId: paymentData.userId,
+        amount: paymentData.amount,
+        paymentType: paymentData.paymentType,
+        status: paymentData.status,
+        paymentMethod: paymentData.paymentMethod,
+        transactionId: paymentData.transactionId,
+        completedAt: paymentData.completedAt,
+      },
+    })
+    return {
+      id: payment.id,
+      userId: payment.userId,
+      amount: decimalToNumber(payment.amount),
+      paymentType: payment.paymentType as 'subscription' | 'course' | 'room',
+      status: payment.status as 'pending' | 'completed' | 'failed' | 'refunded',
+      paymentMethod: payment.paymentMethod || undefined,
+      transactionId: payment.transactionId || undefined,
+      createdAt: payment.createdAt,
+      completedAt: payment.completedAt || undefined,
     }
-    storage.payments.set(payment.id, payment)
-    return payment
   },
 
   getPayment: async (id: string): Promise<Payment | null> => {
-    return storage.payments.get(id) || null
+    const payment = await prisma.payment.findUnique({
+      where: { id },
+    })
+    if (!payment) return null
+    return {
+      id: payment.id,
+      userId: payment.userId,
+      amount: decimalToNumber(payment.amount),
+      paymentType: payment.paymentType as 'subscription' | 'course' | 'room',
+      status: payment.status as 'pending' | 'completed' | 'failed' | 'refunded',
+      paymentMethod: payment.paymentMethod || undefined,
+      transactionId: payment.transactionId || undefined,
+      createdAt: payment.createdAt,
+      completedAt: payment.completedAt || undefined,
+    }
   },
 
   getPaymentsByUserId: async (userId: string): Promise<Payment[]> => {
-    return Array.from(storage.payments.values()).filter(p => p.userId === userId)
+    const payments = await prisma.payment.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    })
+    return payments.map(payment => ({
+      id: payment.id,
+      userId: payment.userId,
+      amount: decimalToNumber(payment.amount),
+      paymentType: payment.paymentType as 'subscription' | 'course' | 'room',
+      status: payment.status as 'pending' | 'completed' | 'failed' | 'refunded',
+      paymentMethod: payment.paymentMethod || undefined,
+      transactionId: payment.transactionId || undefined,
+      createdAt: payment.createdAt,
+      completedAt: payment.completedAt || undefined,
+    }))
   },
 
   getAllPayments: async (): Promise<Payment[]> => {
-    return Array.from(storage.payments.values())
+    const payments = await prisma.payment.findMany({
+      orderBy: { createdAt: 'desc' },
+    })
+    return payments.map(payment => ({
+      id: payment.id,
+      userId: payment.userId,
+      amount: decimalToNumber(payment.amount),
+      paymentType: payment.paymentType as 'subscription' | 'course' | 'room',
+      status: payment.status as 'pending' | 'completed' | 'failed' | 'refunded',
+      paymentMethod: payment.paymentMethod || undefined,
+      transactionId: payment.transactionId || undefined,
+      createdAt: payment.createdAt,
+      completedAt: payment.completedAt || undefined,
+    }))
   },
 
   updatePayment: async (id: string, updates: Partial<Payment>): Promise<Payment | null> => {
-    const payment = storage.payments.get(id)
-    if (!payment) return null
-    const updated = { ...payment, ...updates }
-    storage.payments.set(id, updated)
-    return updated
+    const payment = await prisma.payment.update({
+      where: { id },
+      data: {
+        ...(updates.amount !== undefined && { amount: updates.amount }),
+        ...(updates.paymentType && { paymentType: updates.paymentType }),
+        ...(updates.status && { status: updates.status }),
+        ...(updates.paymentMethod !== undefined && { paymentMethod: updates.paymentMethod }),
+        ...(updates.transactionId !== undefined && { transactionId: updates.transactionId }),
+        ...(updates.completedAt !== undefined && { completedAt: updates.completedAt }),
+      },
+    })
+    return {
+      id: payment.id,
+      userId: payment.userId,
+      amount: decimalToNumber(payment.amount),
+      paymentType: payment.paymentType as 'subscription' | 'course' | 'room',
+      status: payment.status as 'pending' | 'completed' | 'failed' | 'refunded',
+      paymentMethod: payment.paymentMethod || undefined,
+      transactionId: payment.transactionId || undefined,
+      createdAt: payment.createdAt,
+      completedAt: payment.completedAt || undefined,
+    }
   },
 }
