@@ -4,8 +4,8 @@ import { LanguageProvider } from '@/contexts/LanguageContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export const metadata: Metadata = {
-  title: 'RoProfit - Transformă-ți timpul în venit pasiv',
-  description: 'Platformă educațională inovatoare pentru tineri și profesioniști ambițioși. Consultații video gratuite, mentorat personalizat și sistem automatizat de gestionare financiară.',
+  title: 'MyRoom.world - Your rooms for sales, education, growth, and communities',
+  description: 'MyRoom.world - Your rooms for sales, education, growth, and communities. Create your Room. Build your Team. Reach your Goals.',
 }
 
 export default function RootLayout({

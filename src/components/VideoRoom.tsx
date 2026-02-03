@@ -21,7 +21,6 @@ import ToastContainer from './ToastContainer'
 import VideoEffectsPanel from './VideoEffectsPanel'
 import Tooltip from './Tooltip'
 import KeyboardShortcuts from './KeyboardShortcuts'
-import PostCallForm from './PostCallForm'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 interface VideoRoomProps {
@@ -68,7 +67,6 @@ export default function VideoRoom({ userData }: VideoRoomProps = {}) {
   const [isEffectsOpen, setIsEffectsOpen] = useState(false)
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [showPostCallForm, setShowPostCallForm] = useState(false)
 
   // Initialize user name from userData if available
   useEffect(() => {
@@ -179,23 +177,10 @@ export default function VideoRoom({ userData }: VideoRoomProps = {}) {
     stopStream()
     setIsJoined(false)
     showToast(t('videoroom.left'), 'info')
-    // Show post-call form if userData is available (from consultatie flow)
-    if (userData) {
-      setShowPostCallForm(true)
-    }
-  }
-
-  const handlePostCallComplete = () => {
-    setShowPostCallForm(false)
   }
 
   const handleCopyLink = () => {
     showToast('Share link copied!', 'success')
-  }
-
-  // Show post-call form if call ended
-  if (showPostCallForm) {
-    return <PostCallForm onComplete={handlePostCallComplete} />
   }
 
   return (
@@ -213,7 +198,7 @@ export default function VideoRoom({ userData }: VideoRoomProps = {}) {
         <div className="flex items-center justify-center min-h-screen p-4 animate-fade-in">
           <div className="text-center max-w-md w-full">
             <div className="mb-6">
-              <div className="text-4xl font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent mb-2">
+              <div className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent mb-2">
                 {t('videoroom.brand')}
               </div>
               <h1 className={`text-2xl sm:text-3xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
