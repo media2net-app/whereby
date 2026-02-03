@@ -30,9 +30,18 @@ interface VideoRoomProps {
     ageGroup: string
     goal: string
   }
+  roomData?: {
+    id: string
+    name: string
+    slug: string
+    roomType?: string
+    description?: string
+    maxParticipants?: number
+    link?: string
+  }
 }
 
-export default function VideoRoom({ userData }: VideoRoomProps = {}) {
+export default function VideoRoom({ userData, roomData }: VideoRoomProps = {}) {
   const {
     stream,
     screenStream,
@@ -53,7 +62,7 @@ export default function VideoRoom({ userData }: VideoRoomProps = {}) {
 
   const { cameras, microphones } = useDevices()
   const { audioLevel, isSpeaking } = useAudioLevel(stream)
-  const { roomId, shareLink } = useRoomId()
+  const { roomId, shareLink } = useRoomId(roomData?.slug)
   const { user, updateUserName } = useUser()
   const { theme, toggleTheme } = useTheme()
   const { toasts, showToast, removeToast } = useToast()
@@ -202,10 +211,10 @@ export default function VideoRoom({ userData }: VideoRoomProps = {}) {
                 {t('videoroom.brand')}
               </div>
               <h1 className={`text-2xl sm:text-3xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {t('videoroom.title')}
+                {roomData?.name || t('videoroom.title')}
               </h1>
               <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                {t('videoroom.subtitle')}
+                {roomData?.description || t('videoroom.subtitle')}
               </p>
             </div>
             {roomId && (

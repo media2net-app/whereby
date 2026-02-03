@@ -31,7 +31,7 @@ export default function Hero() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Link
-              href="#rooms"
+              href="/signup"
               className="group relative px-8 py-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold text-lg rounded-lg shadow-2xl transform transition-all duration-300 hover:scale-105 hover:shadow-orange-500/50"
             >
               <span className="relative z-10 flex items-center gap-2">
@@ -41,6 +41,12 @@ export default function Hero() {
                 {t('hero.cta.button')}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-yellow-400 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </Link>
+            <Link
+              href="/marketplace"
+              className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold text-lg rounded-lg border-2 border-white/20 hover:bg-white/20 transition-all duration-300"
+            >
+              Browse Marketplace
             </Link>
           </div>
         </div>

@@ -13,12 +13,18 @@ const generateRoomId = (): string => {
   return result
 }
 
-export function useRoomId() {
+export function useRoomId(roomSlug?: string) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [roomId, setRoomId] = useState<string | null>(null)
 
   useEffect(() => {
+    // If roomSlug is provided, use it
+    if (roomSlug) {
+      setRoomId(roomSlug)
+      return
+    }
+
     const roomIdParam = searchParams.get('room')
     
     if (roomIdParam) {
@@ -32,10 +38,14 @@ export function useRoomId() {
       url.searchParams.set('room', newRoomId)
       router.replace(url.pathname + url.search, { scroll: false })
     }
-  }, [searchParams, router])
+  }, [searchParams, router, roomSlug])
 
   const getShareLink = (): string => {
     if (typeof window === 'undefined' || !roomId) return ''
+    // If using room slug, use /room/[slug] format
+    if (roomSlug) {
+      return `${window.location.origin}/room/${roomId}`
+    }
     return `${window.location.origin}${window.location.pathname}?room=${roomId}`
   }
 
